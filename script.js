@@ -46,7 +46,7 @@ var termColors = [
 ];
 
 var SVG = function(tag) {
-   return $(document.createElementNS('http://www.w3.org/2000/svg', tag));
+  return $(document.createElementNS('http://www.w3.org/2000/svg', tag));
 };
 
 playback = function() {
@@ -108,7 +108,7 @@ $('#pause').attr('transform',
 
 var logsSpec = {
   x: 430,
-  y: 50,
+  y: 20,
   width: 320,
   height: 270,
 };
@@ -317,12 +317,15 @@ render.logs = function() {
   var LABEL_WIDTH = 25;
   var INDEX_HEIGHT = 25;
   var logsGroup = $('.logs', svg);
+  var height = (logsSpec.height - INDEX_HEIGHT) / NUM_SERVERS;
   logsGroup.empty();
   logsGroup.append(
     SVG('rect')
       .attr('id', 'logsbg')
-      .attr(logsSpec));
-  var height = (logsSpec.height - INDEX_HEIGHT) / NUM_SERVERS;
+      .attr(logsSpec)
+      .attr('height', logsSpec.height + height * 1.9));
+  var key = SVG('g').attr('class', 'key');
+  logsGroup.append(key);
   var leader = getLeader();
   var indexSpec = {
     x: logsSpec.x + LABEL_WIDTH + logsSpec.width * 0.05,
@@ -397,6 +400,26 @@ render.logs = function() {
         .attr('stroke-width', 3));
     }
   });
+
+  key.append(SVG('path')
+    .attr('style', 'marker-end:url(#TriangleOutM); stroke: black')
+    .attr('d', ['M', logsSpec.x + 6 * LABEL_WIDTH, comma, logsSpec.y + logsSpec.height + .6*height + 2*height/3/3,
+                'L', logsSpec.x + 6 * LABEL_WIDTH, comma, logsSpec.y + logsSpec.height + .6*height + 2*height/3/6].join(' '))
+    .attr('stroke-width', 3));
+
+  key.append(SVG('text')
+    .attr({x: logsSpec.x + 8 * LABEL_WIDTH + .7 * LABEL_WIDTH,
+           y: logsSpec.y + logsSpec.height + .7*height})
+    .text('= next index'));
+
+  key.append(SVG('circle')
+    .attr({cx: logsSpec.x + 6 * LABEL_WIDTH,
+           cy: logsSpec.y + logsSpec.height + 1.4*height,
+           r: 5}));
+  key.append(SVG('text')
+    .attr({x: logsSpec.x + 8.5 * LABEL_WIDTH + .7 * LABEL_WIDTH,
+           y: logsSpec.y + logsSpec.height + 1.4*height})
+    .text('= match index'));
 };
 
 render.messages = function(messagesSame) {
@@ -595,12 +618,12 @@ messageModal = function(model, message) {
   m.modal();
 };
 
-// Transforms the simulation speed from a linear slider
-// to a logarithmically scaling time factor.
-var speedSliderTransform = function(v) {
-  v = Math.pow(10, v);
+var sliderTransform = function(v) {
+  v = Math.pow(v, 3) + 100;
   if (v < 1)
     return 1;
+  else if (v > 1000)
+    return 1000;
   else
     return v;
 };
@@ -630,7 +653,7 @@ render.update = function() {
   var step = function(timestamp) {
     if (!playback.isPaused() && last !== null && timestamp - last < 500) {
       var wallMicrosElapsed = (timestamp - last) * 1000;
-      var speed = speedSliderTransform($('#speed').slider('getValue'));
+      var speed = sliderTransform($('#speed').slider('getValue'));
       var modelMicrosElapsed = wallMicrosElapsed / speed;
       var modelMicros = state.current.time + modelMicrosElapsed;
       state.seek(modelMicros);
@@ -652,7 +675,8 @@ $(window).keyup(function(e) {
     return;
   var leader = getLeader();
   if (e.keyCode == ' '.charCodeAt(0) ||
-      e.keyCode == 190 /* dot, emitted by Logitech remote */) {
+      e.keyCode == 34 /* next, emitted by Logitech remote */ ||
+      e.keyCode == 190 /* dot */) {
     $('.modal').modal('hide');
     playback.toggle();
   } else if (e.keyCode == 'C'.charCodeAt(0)) {
@@ -727,7 +751,7 @@ var getLeader = function() {
 $("#speed").slider({
   tooltip: 'always',
   formater: function(value) {
-    return '1/' + speedSliderTransform(value).toFixed(0) + 'x';
+    return sliderTransform(value).toFixed(0) + 'x';
   },
   reversed: true,
 });
@@ -778,4 +802,3 @@ state.updater = function(state) {
 state.init();
 render.update();
 });
-

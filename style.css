@@ -238,3 +238,7 @@ a#time-button  {
 .slide .gray {
   color: #333;
 }
+
+#restore-dropdown {
+    margin-top: 1em;
+}
